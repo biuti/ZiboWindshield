@@ -2,7 +2,7 @@
 ZiboWindshield
 X-Plane plugin
 
-Copyright (c) 2023, Antonio Golfari
+Copyright (c) 2025, Antonio Golfari
 All rights reserved.
 
 This source code is licensed under the BSD-style license found in the
@@ -28,7 +28,7 @@ __VERSION__ = 'v1.0'
 # Plugin parameters required from XPPython3
 plugin_name = 'ZiboWindshield'
 plugin_sig = 'xppython3.zibowindshield'
-plugin_desc = 'Simple Python script to change rain depiction on cockpit windshield'
+plugin_desc = 'Simple Python script to change rain or ice depiction on cockpit windshield'
 
 # Other parameters
 DEFAULT_SCHEDULE = 3  # positive numbers are seconds, 0 disabled, negative numbers are cycles
@@ -172,9 +172,10 @@ class PythonInterface(object):
                 else:
                     self.started = True
             return IDLE_SCHEDULE
-        elif self.dref:
+        if self.dref:
             self.dref.reset()
             self.dref = False
+
         return DEFAULT_SCHEDULE
 
     def XPluginStart(self):
