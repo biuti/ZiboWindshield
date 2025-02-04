@@ -32,6 +32,7 @@ plugin_desc = 'Simple Python script to change rain depiction on cockpit windshie
 
 # Other parameters
 DEFAULT_SCHEDULE = 3  # positive numbers are seconds, 0 disabled, negative numbers are cycles
+ICE_SCHEDULE = -1  # positive numbers are seconds, 0 disabled, negative numbers are cycles
 IDLE_SCHEDULE = 30  # positive numbers are seconds, 0 disabled, negative numbers are cycles 
 
 # Raindrops parameters
@@ -49,6 +50,10 @@ DEFAULT_HISTORY_RATE = 0.04
 DEFAULT_RAIN_MAX_FORCE = 50
 DEFAULT_RAIN_SCALE = 1
 DEFAULT_RAIN_SPAWN = 1000
+
+# Ice parameters
+ICE = True  # set full iced windshield at cold and dark start
+ICE_ADDED_DELTA = 0.99
 
 # Aircrafts
 AIRCRAFTS = [
@@ -75,6 +80,13 @@ class Dref(object):
         self._rain_scale_dref = find_dataref('sim/private/controls/rain/scale')
         self._rain_spawn_dref = find_dataref('sim/private/controls/rain/spawn_adjust')
 
+        self._window_ice = find_dataref('sim/flightmodel/failures/window_ice')
+        self._window_ice_added_delta = find_dataref('sim/flightmodel/failures/window_ice_added_delta')
+        self._window_ice_unheated = find_dataref('sim/flightmodel/failures/window_ice_unheated')
+
+        self._battery_pos = find_dataref('laminar/B738/electric/battery_pos')
+        self._on_ground = find_dataref('sim/flightmodel2/gear/on_ground')
+
     @property
     def rain_needs_adjustment(self) -> bool:
         try:
@@ -83,6 +95,17 @@ class Dref(object):
             xp.log(f"ERROR: {e}")
             return False
 
+    @property
+    def cold_and_dark(self) -> bool:
+        try:
+            return self._battery_pos.value == 0 and any(self._on_ground.value)
+        except SystemError as e:
+            xp.log(f"ERROR: {e}")
+            return False
+
+    @property
+    def icy_condition(self) -> bool:
+        return self._window_ice_unheated.value > 0
 
     def _set(self, dref, value: float) -> bool:
         try:
@@ -118,6 +141,8 @@ class PythonInterface(object):
         # Dref init
         self.dref = False
 
+        self.started = False  # started pre flight, to inhibit cold and dark
+
     @property
     def aircraft_path(self) -> str:
         _, acf_path = xp.getNthAircraftModel(0)
@@ -140,6 +165,12 @@ class PythonInterface(object):
             # check if we need to change parameters
             if RAIN and self.dref.rain_needs_adjustment:
                 self.dref.adjust()
+            if ICE and self.dref.icy_condition and not self.started:
+                if self.dref.cold_and_dark :
+                    self.dref._window_ice_added_delta.value = ICE_ADDED_DELTA
+                    return ICE_SCHEDULE
+                else:
+                    self.started = True
             return IDLE_SCHEDULE
         elif self.dref:
             self.dref.reset()
