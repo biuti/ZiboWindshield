@@ -50,6 +50,12 @@ DEFAULT_RAIN_MAX_FORCE = 50
 DEFAULT_RAIN_SCALE = 1
 DEFAULT_RAIN_SPAWN = 1000
 
+# Aircrafts
+AIRCRAFTS = [
+    ('Zibo', 'B737-800X'),
+    ('LevelUp', 'LevelUp')
+]
+
 
 # widget parameters
 try:
@@ -118,9 +124,8 @@ class PythonInterface(object):
         return acf_path
 
     @property
-    def zibo_loaded(self) -> bool:
-        loaded = 'B737-800X' in self.aircraft_path
-        # load drefs if needed
+    def aircraft_detected(self) -> bool:
+        loaded = bool(any(p[1] in self.aircraft_path for p in AIRCRAFTS))
         if loaded and not self.dref:
             self.dref = Dref()
         elif not loaded and self.dref:
@@ -131,7 +136,7 @@ class PythonInterface(object):
         """Loop Callback"""
         t = datetime.now()
         start = perf_counter()
-        if self.zibo_loaded:
+        if self.aircraft_detected and self.dref:
             # check if we need to change parameters
             if RAIN and self.dref.rain_needs_adjustment:
                 self.dref.adjust()
