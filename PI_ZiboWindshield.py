@@ -23,7 +23,7 @@ except ImportError:
 
 
 # Version
-__VERSION__ = 'v2.0-beta.2'
+__VERSION__ = 'v2.0.0'
 
 # Plugin parameters required from XPPython3
 plugin_name = 'ZiboWindshield'
@@ -70,7 +70,7 @@ except NameError:
     FONT_WIDTH, FONT_HEIGHT = 10, 10
 
 
-class Dref(object):
+class Dref:
 
     def __init__(self) -> None:
         self._rain_force_factor_dref = find_dataref('sim/private/controls/rain/force_factor')
@@ -131,7 +131,7 @@ class Dref(object):
         self._set(self._rain_spawn_dref, DEFAULT_RAIN_SPAWN)
 
 
-class PythonInterface(object):
+class PythonInterface:
 
     def __init__(self) -> None:
         self.plugin_name = f"{plugin_name} - {__VERSION__}"
@@ -157,7 +157,7 @@ class PythonInterface(object):
             self.dref = False
         return loaded
 
-    def loopCallback(self, lastCall, elapsedTime, counter, refCon):
+    def loopCallback(self, lastCall, elapsedTime, counter, refCon) -> int:
         """Loop Callback"""
         t = datetime.now()
         start = perf_counter()
@@ -178,20 +178,20 @@ class PythonInterface(object):
 
         return DEFAULT_SCHEDULE
 
-    def XPluginStart(self):
+    def XPluginStart(self) -> tuple[str, str, str]:
         return self.plugin_name, self.plugin_sig, self.plugin_desc
 
-    def XPluginEnable(self):
+    def XPluginEnable(self) -> int:
         # loopCallback
         self.loop = self.loopCallback
         self.loop_id = xp.createFlightLoop(self.loop, phase=1)
         xp.scheduleFlightLoop(self.loop_id, interval=DEFAULT_SCHEDULE)
         return 1
 
-    def XPluginDisable(self):
+    def XPluginDisable(self) -> None:
         pass
 
-    def XPluginStop(self):
+    def XPluginStop(self) -> None:
         # Called once by X-Plane on quit (or when plugins are exiting as part of reload)
         xp.destroyFlightLoop(self.loop_id)
         xp.log("flightloop closed, exiting ...")
