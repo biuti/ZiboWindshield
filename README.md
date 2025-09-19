@@ -17,9 +17,10 @@ Simple Python script to change precipitations depiction and ice on Zibo and Leve
 
 > [!IMPORTANT]
 > **I strongly suggest to install latest available version of the XPPython3 plugin.
-Starting from ver. 4.3.0 it is not needed to install Python3 on your system, and all needed libraries are already installed, so it's a lot easier to manage.\
+Starting from ver. 4.3.0 it is not needed to install Python3 on your system, and all needed libraries are already installed, so it's a lot easier to manage.
 \
-Otherwise, in the very unfortunate case you stick with previous versions of the plugin, you'll need to download correct XPPython3 version according to your Python3 installed version.\
+Otherwise, in the very unfortunate case you stick with previous versions of the plugin, you'll need to download correct XPPython3 version according to your Python3 installed version.
+\
 This plugin has been tested only using Python version 3.12 and 3.13, may not work using older ones.\
 Read [instructions](https://xppython3.readthedocs.io/en/latest/usage/installation_plugin.html) on the website**
 
