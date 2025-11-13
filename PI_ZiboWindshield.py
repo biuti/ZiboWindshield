@@ -65,7 +65,7 @@ AIRCRAFTS = [
 # widget parameters
 try:
     FONT = xp.Font_Proportional
-    FONT_WIDTH, FONT_HEIGHT, _ = xp.getFontDimensions(FONT)
+    FONT_WIDTH, FONT_HEIGHT, _ = xp.getFontDimensions(FONT) or (10, 10, 0)
 except NameError:
     FONT_WIDTH, FONT_HEIGHT = 10, 10
 
@@ -107,14 +107,16 @@ class Dref:
     def icy_condition(self) -> bool:
         return self._window_ice_unheated.value > 0
 
-    def _set(self, dref, value: float) -> bool:
+    def _set(self, dref, value: float) -> None:
         try:
             dref.value = value
         except SystemError as e:
             xp.log(f"ERROR: {e}")
-            return False
 
-    def adjust(self) -> bool:
+    def adjust_icing(self) -> None:
+        self._set(self._window_ice_added_delta, ICE_ADDED_DELTA)
+
+    def adjust(self) -> None:
         self._set(self._rain_force_factor_dref, ZIBO_RAIN_FORCE_FACTOR)
         self._set(self._friction_dynamic_dref, ZIBO_FRICTION_DYNAMIC)
         self._set(self._history_rate_dref, ZIBO_HISTORY_RATE)
@@ -122,7 +124,7 @@ class Dref:
         self._set(self._rain_scale_dref, ZIBO_RAIN_SCALE)
         self._set(self._rain_spawn_dref, ZIBO_RAIN_SPAWN)
 
-    def reset(self) -> bool:
+    def reset(self) -> None:
         self._set(self._rain_force_factor_dref, DEFAULT_RAIN_FORCE_FACTOR)
         self._set(self._friction_dynamic_dref, DEFAULT_FRICTION_DYNAMIC)
         self._set(self._history_rate_dref, DEFAULT_HISTORY_RATE)
@@ -151,9 +153,10 @@ class PythonInterface:
     @property
     def aircraft_detected(self) -> bool:
         loaded = bool(any(p[1] in self.aircraft_path for p in AIRCRAFTS))
-        if loaded and not self.dref:
+        if loaded and self.dref is False:
             self.dref = Dref()
-        elif not loaded and self.dref:
+        elif not loaded and isinstance(self.dref, Dref):
+            self.dref.reset()
             self.dref = False
         return loaded
 
@@ -161,20 +164,17 @@ class PythonInterface:
         """Loop Callback"""
         t = datetime.now()
         start = perf_counter()
-        if self.aircraft_detected and self.dref:
+        if self.aircraft_detected and isinstance(self.dref, Dref):
             # check if we need to change parameters
             if RAIN and self.dref.rain_needs_adjustment:
                 self.dref.adjust()
             if ICE and self.dref.icy_condition and not self.started:
-                if self.dref.cold_and_dark :
-                    self.dref._window_ice_added_delta.value = ICE_ADDED_DELTA
+                if self.dref.cold_and_dark:
+                    self.dref.adjust_icing()
                     return ICE_SCHEDULE
                 else:
                     self.started = True
             return IDLE_SCHEDULE
-        if self.dref:
-            self.dref.reset()
-            self.dref = False
 
         return DEFAULT_SCHEDULE
 
