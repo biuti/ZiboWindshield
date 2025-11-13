@@ -23,7 +23,7 @@ except ImportError:
 
 
 # Version
-__VERSION__ = 'v2.0.0'
+__VERSION__ = 'v3.0.0'
 
 # Plugin parameters required from XPPython3
 plugin_name = 'ZiboWindshield'
