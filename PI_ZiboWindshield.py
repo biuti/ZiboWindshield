@@ -21,6 +21,15 @@ except ImportError:
     print('xp module not found')
     pass
 
+# debug 
+DEBUG = False
+
+def log(msg: str) -> None:
+    xp.log(msg)
+
+def debug(msg: str, tag: str = "DEBUG") -> None:
+    if DEBUG:
+        xp.log(f"[{tag}] {msg}")
 
 # Version
 __VERSION__ = 'v3.0.0'
@@ -92,26 +101,30 @@ class Dref:
         try:
             return not math.isclose(self._rain_force_factor_dref.value, ZIBO_RAIN_FORCE_FACTOR, rel_tol=0.1)
         except SystemError as e:
-            xp.log(f"ERROR: {e}")
+            log(f"ERROR: {e}")
             return False
 
     @property
     def cold_and_dark(self) -> bool:
         try:
+            debug(f"cold and dark dref value: {self._battery_pos.value}", "COLD_AND_DARK")
+            debug(f"on_ground dref value: {self._on_ground.value}", "COLD_AND_DARK")
+            debug(f"any(on_ground): {any(self._on_ground.value)}", "COLD_AND_DARK")
             return self._battery_pos.value == 0 and any(self._on_ground.value)
         except SystemError as e:
-            xp.log(f"ERROR: {e}")
+            log(f"ERROR: {e}")
             return False
 
     @property
     def icy_condition(self) -> bool:
+        debug(f"window_ice_unheated: {self._window_ice_unheated.value}", "ICY_CONDITION")
         return self._window_ice_unheated.value > 0
 
     def _set(self, dref, value: float) -> None:
         try:
             dref.value = value
         except SystemError as e:
-            xp.log(f"ERROR: {e}")
+            log(f"ERROR: {e}")
 
     def adjust_icing(self) -> None:
         self._set(self._window_ice_added_delta, ICE_ADDED_DELTA)
@@ -156,6 +169,7 @@ class PythonInterface:
         if loaded and self.dref is False:
             self.dref = Dref()
         elif not loaded and isinstance(self.dref, Dref):
+            debug(f" *** Aircraft not loaded - Dref settings reset", "AIRCRAFT_DETECTED")
             self.dref.reset()
             self.dref = False
         return loaded
@@ -164,11 +178,15 @@ class PythonInterface:
         """Loop Callback"""
         t = datetime.now()
         start = perf_counter()
+        debug(f"aircraft detected: {self.aircraft_detected}", "LOOP_CALLBACK")
         if self.aircraft_detected and isinstance(self.dref, Dref):
             # check if we need to change parameters
+            debug(f"{t.strftime('%H:%M:%S')} - cold and dark: {self.dref.cold_and_dark} | icy conditions: {self.dref.icy_condition} | started: {self.started}", "LOOP_CALLBACK")
             if RAIN and self.dref.rain_needs_adjustment:
+                # raindrops adjustment
                 self.dref.adjust()
             if ICE and self.dref.icy_condition and not self.started:
+                # ice adjustment
                 if self.dref.cold_and_dark:
                     self.dref.adjust_icing()
                     return ICE_SCHEDULE
@@ -176,6 +194,7 @@ class PythonInterface:
                     self.started = True
             return IDLE_SCHEDULE
 
+        debug(f" {t.strftime('%H:%M:%S')} - loopCallback() ended after {round(perf_counter() - start, 3)} sec | schedule = {DEFAULT_SCHEDULE} sec", "LOOP_CALLBACK")
         return DEFAULT_SCHEDULE
 
     def XPluginStart(self) -> tuple[str, str, str]:
@@ -185,6 +204,7 @@ class PythonInterface:
         # loopCallback
         self.loop = self.loopCallback
         self.loop_id = xp.createFlightLoop(self.loop, phase=1)
+        log(f" - {datetime.now().strftime('%H:%M:%S')} Flightloop created, ID {self.loop_id}")
         xp.scheduleFlightLoop(self.loop_id, interval=DEFAULT_SCHEDULE)
         return 1
 
@@ -194,4 +214,4 @@ class PythonInterface:
     def XPluginStop(self) -> None:
         # Called once by X-Plane on quit (or when plugins are exiting as part of reload)
         xp.destroyFlightLoop(self.loop_id)
-        xp.log("flightloop closed, exiting ...")
+        log("flightloop closed, exiting ...")
