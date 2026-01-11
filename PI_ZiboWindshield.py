@@ -32,7 +32,7 @@ def debug(msg: str, tag: str = "DEBUG") -> None:
         xp.log(f"[{tag}] {msg}")
 
 # Version
-__VERSION__ = 'v3.0.1'
+__VERSION__ = 'v3.1'
 
 # Plugin parameters required from XPPython3
 plugin_name = 'ZiboWindshield'
